@@ -1,0 +1,107 @@
+# RAG evaluation quality gate.
+#
+# Jobs
+#   unit  - fast offline tests (no secrets)
+#   eval  - live evaluation against the RAG API with an LLM judge; fails the build when a
+#           threshold in config/thresholds.yaml is missed. Uploads the HTML/JSON report
+#           even when the gate fails.
+#
+# Required repository configuration (Settings > Secrets and variables > Actions)
+#   Variables: RETRIEVAL_API_URL (e.g. https://host/v1/retrieve), GENERATION_API_URL (e.g. https://host/v1/answer),
+#              (optional) JUDGE_PROVIDER, RAGQA_RUNS, JEV_API_URL, JEV_MODEL
+#   Secrets:   GROQ_API_KEY (default judge) or ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY,
+#              or JEV_API_KEY when the judge is `jev` (TypeSafe Jev instead of an LLM),
+#              (optional) RETRIEVAL_API_TOKEN, GENERATION_API_TOKEN (the RAG API needs no auth for now),
+#              Bedrock judge: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (+ AWS_SESSION_TOKEN), variable AWS_REGION,
+#              or assume an IAM role with GitHub OIDC (aws-actions/configure-aws-credentials) before the eval step
+# The RAG API must be reachable from the runner (public/staging URL or self-hosted runner).
+
+# Trigger: MANUAL ONLY. Start it from GitHub: Actions > rag-evaluation > "Run workflow"
+# (or `gh workflow run rag-evaluation.yml -f runs=3 -f judge=jev -f only='retriever.*'`). It never runs on push or PR.
+
+name: rag-evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: "Scoring runs (1 = single run, >1 = multi run)"
+        default: "1"
+      judge:
+        description: "Judge provider (groq | anthropic | openai | google | bedrock | jev); empty = JUDGE_PROVIDER variable, else groq"
+        default: ""
+      only:
+        description: "Metric patterns to run, e.g. 'retriever.*' or 'generator.*,application.latency_ms'; empty = all enabled"
+        default: ""
+      limit:
+        description: "Evaluate only the first N golden cases (smoke test); empty = all"
+        default: ""
+
+concurrency:
+  group: rag-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ragqa validate-dataset
+      - name: Golden dataset is in sync with the spreadsheet
+        if: ${{ hashFiles('datasets/source/golden-dataset.xlsx', 'datasets/golden.jsonl') != '' }}
+        run: |
+          uv run python scripts/xlsx_to_golden.py datasets/source/golden-dataset.xlsx -o datasets/golden.jsonl
+          git diff --exit-code -- datasets/golden.jsonl
+      - run: uv run pytest
+
+  eval:
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RETRIEVAL_API_URL: ${{ vars.RETRIEVAL_API_URL }}
+      GENERATION_API_URL: ${{ vars.GENERATION_API_URL }}
+      RETRIEVAL_API_TOKEN: ${{ secrets.RETRIEVAL_API_TOKEN }}
+      GENERATION_API_TOKEN: ${{ secrets.GENERATION_API_TOKEN }}
+      JUDGE_PROVIDER: ${{ inputs.judge || vars.JUDGE_PROVIDER || 'groq' }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      JEV_API_KEY: ${{ secrets.JEV_API_KEY }}
+      JEV_API_URL: ${{ vars.JEV_API_URL }}
+      JEV_MODEL: ${{ vars.JEV_MODEL }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      BEDROCK_MODEL: ${{ vars.BEDROCK_MODEL }}
+      RAGQA_RUNS: ${{ inputs.runs || vars.RAGQA_RUNS || '1' }}
+      RAGQA_ONLY: ${{ inputs.only }}
+      RAGQA_LIMIT: ${{ inputs.limit }}
+      RAGQA_REPORT_DIR: reports
+      DEEPEVAL_TELEMETRY_OPT_OUT: "YES"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Evaluate (quality gate)
+        run: uv run pytest tests/eval -v --junitxml=reports/junit.xml
+      - name: Publish summary
+        if: always()
+        run: |
+          echo "### RAG evaluation" >> "$GITHUB_STEP_SUMMARY"
+          echo "Judge: \`$JUDGE_PROVIDER\` · runs: $RAGQA_RUNS · metrics: ${RAGQA_ONLY:-all enabled} · cases: ${RAGQA_LIMIT:-all}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Open the **rag-eval-report** artifact for the full HTML report." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rag-eval-report
+          path: reports/
+          if-no-files-found: warn

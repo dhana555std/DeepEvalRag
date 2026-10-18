@@ -1,0 +1,45 @@
+[project]
+name = "ragqa"
+version = "0.1.0"
+description = "Production-grade RAG evaluation harness built on DeepEval"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "anthropic>=1.15.0",
+    "boto3>=1.43.114",
+    "deepeval>=4.3.1",
+    "google-genai>=2.31.0",
+    "groq>=1.7.0",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "openai>=3.33.0",
+    "pydantic>=2.14.1",
+    "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.3",
+    "tenacity>=9.1.4",
+]
+
+[project.scripts]
+ragqa = "ragqa.cli:main"
+
+[dependency-groups]
+dev = [
+    "openpyxl>=3.1.5",
+    "pytest>=9.1.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragqa"]
+
+[tool.pytest.ini_options]
+# `pytest` runs the fast offline unit tests. The live evaluation suite is run explicitly:
+#   uv run pytest tests/eval        or        uv run deepeval test run tests/eval
+testpaths = ["tests/unit"]
+pythonpath = ["src"]
+markers = ["eval: live evaluation against the RAG API and an LLM judge"]
+filterwarnings = ["ignore::DeprecationWarning"]

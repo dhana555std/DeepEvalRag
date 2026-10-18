@@ -1,0 +1,21 @@
+# reporting.yaml - report output and branding.
+#
+# The HTML report is built from a Jinja template and a separate stylesheet
+# (src/ragqa/reporting/templates/report.html.j2 and static/report.css).
+# Brand it without touching Python:
+#   css:          your stylesheet, loaded after the default (override the :root variables)
+#   logo:         image shown in the header
+#   favicon:      browser-tab icon (svg/png/ico); default is a bundled generic icon
+#   template_dir: directory with your own report.html.j2 for a full layout change
+# Large datasets: report.html holds every case; report.js shows page_size at a time with a Next/Prev pager.
+
+title: RAG Evaluation Report
+output_dir: reports
+reporters: [html, json]       # add "allure" here once an Allure reporter module exists
+logo: null
+favicon: null                # browser-tab icon (svg/png/ico); null = bundled generic icon
+css: null                     # e.g. documentation/branding/brand.css
+template_dir: null
+page_size: 20                 # cases shown per page in the HTML report (Next button, same page); 0 = show all
+cases_order: failed_first     # failed_first (problems on page 1) | dataset
+pager_pages: 20               # page numbers shown at once; beyond that use « » / Next to move to the next sheet

@@ -1,0 +1,244 @@
+{#-
+  report.html.j2 - structure of the evaluation report (styling lives in report.css).
+
+  Context variables
+    report      RunReport (ragqa.models): title, mode, runs, multi, passed, judges, ...
+    summary     Summary (ragqa.reporting.summary): counters, root-cause list, threshold breaches
+    brand_css   file name of the optional branding stylesheet, or None
+    logo        file name of the optional logo, or None
+    favicon     file name of the favicon copied next to the report (bundled default or configured)
+    cases, page_size, pager_pages, cases_order   case list and client-side pagination settings
+  Filters (registered by html_reporter.py): fmt(unit), status_class, status_label, short_error
+  Sections: header -> key figures -> what needs attention -> results by layer -> case details
+  (all cases are in the page; report.js shows page_size at a time with a pager)
+  This is the report of ONE evaluation (single or multi run); it has no history/trend views.
+  Override this template by placing a file of the same name in `template_dir` (config/reporting.yaml).
+-#}
+{% from "_case.html.j2" import render_case %}
+{% from "_charts.html.j2" import bullet_row, range_row, donut_card, hist_card %}
+{% set run0 = report.runs[0] %}
+{% macro agg_badge(a) -%}
+  {%- if a.errors -%}<span class="badge fail">ERROR</span>
+  {%- elif a.n == 0 -%}<span class="badge info">N/A</span>
+  {%- else -%}<span class="badge {{ a.passed|status_class }}">{{ a.passed|status_label }}</span>{%- endif -%}
+{%- endmacro %}
+<!DOCTYPE html>
+<html lang="en" data-theme="system" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ report.title }}</title>
+  <meta name="color-scheme" content="light dark">
+  <script>/* apply the saved theme before first paint (no flash); report.js owns the switcher */
+    (function () { var d = document.documentElement; d.classList.remove('no-js');
+      try { var t = localStorage.getItem('ragqa-theme'); if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t); } catch (e) {} })();
+  </script>
+  <link rel="icon" href="{{ favicon }}">
+  <link rel="stylesheet" href="report.css">
+  {% if brand_css %}<link rel="stylesheet" href="{{ brand_css }}">{% endif %}
+  <script src="report.js" defer></script>
+</head>
+<body>
+<div class="page-header-wrap">
+<header class="page-header">
+  {% if logo %}<img class="logo" src="{{ logo }}" alt="logo">{% endif %}
+  <div class="titles">
+    <h1>{{ report.title }}</h1>
+    <p class="meta">
+      {{ report.mode|capitalize }} run · {{ report.dataset_size }} cases ·
+      judge {{ report.judges|join(", ") }} ·
+      DeepEval {{ report.deepeval_version }}
+      {% if report.git_sha %}· commit {{ report.git_sha }}{% endif %} ·
+      {{ report.created_at.strftime("%Y-%m-%d %H:%M UTC") }}
+    </p>
+  </div>
+  <div class="head-side">
+    <div class="theme-switch" role="group" aria-label="Colour theme">
+      <button type="button" data-theme-set="system" aria-pressed="true" title="Follow the system setting">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>System</button>
+      <button type="button" data-theme-set="light" aria-pressed="false" title="Light theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Light</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false" title="Dark theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Dark</button>
+    </div>
+    <span class="verdict {{ 'pass' if report.passed else 'fail' }}">{{ "PASSED" if report.passed else "FAILED" }}</span>
+  </div>
+</header>
+</div>
+
+<main>
+  <section class="kpis" aria-label="Key figures">
+    {% set pct = (summary.metrics_passed * 100 / summary.metrics_total)|round|int if summary.metrics_total else 0 %}
+    <div class="kpi ring {{ 'good' if pct == 100 }}">
+      <div class="ring-chart {{ 'bad' if pct < 60 else ('warn' if pct < 90) }}" style="--pct: {{ pct }}" role="img" aria-label="{{ pct }}% of metrics passed"><span>{{ pct }}%</span></div>
+      <div><span class="kpi-value">{{ summary.metrics_passed }}<small>/{{ summary.metrics_total }}</small></span><span class="kpi-label">Metrics passed</span></div>
+    </div>
+    <div class="kpi {{ 'bad' if summary.metrics_failed }}"><span class="kpi-value">{{ summary.metrics_failed }}</span><span class="kpi-label">Below threshold</span></div>
+    <div class="kpi {{ 'bad' if summary.metrics_errored }}"><span class="kpi-value">{{ summary.metrics_errored }}</span><span class="kpi-label">Could not be scored</span></div>
+    <div class="kpi {{ 'bad' if summary.cases_failed }}"><span class="kpi-value">{{ summary.cases_failed }}<small>/{{ summary.cases_total }}</small></span><span class="kpi-label">Cases with a problem</span></div>
+    <div class="kpi"><span class="kpi-value">{{ summary.metrics_info }}</span><span class="kpi-label">Informational</span></div>
+  </section>
+
+  <section class="overview" aria-label="Overview charts">
+    <h2>Overview</h2>
+    <div class="chart-grid">
+      {{ donut_card("Metric outcomes", [("Passed", summary.metrics_passed, "pass"), ("Below threshold", summary.metrics_failed, "fail"), ("Not scored", summary.metrics_errored, "warn"), ("Informational", summary.metrics_info, "info")], summary.metrics_total, "metrics") }}
+      {{ donut_card("Case outcomes", [("No problem", summary.cases_total - summary.cases_failed, "pass"), ("With a problem", summary.cases_failed, "fail")], summary.cases_total, "cases") }}
+      <article class="chart-card">
+        <h3>Health by layer <span class="muted">(metrics)</span></h3>
+        {% for l in layer_health(run0.aggregates if report.mode == "single" else report.multi) %}
+        <div class="stack-row">
+          <span class="brow-label">{{ l.title }}</span>
+          <span class="stack" role="img" aria-label="{{ l.title }}: {{ l.passed }} passed, {{ l.failed }} below threshold, {{ l.errored }} not scored, {{ l.info }} informational">
+            {% if l.passed %}<i class="pass" style="width: {{ l.pct.passed }}%" title="{{ l.passed }} passed"></i>{% endif %}
+            {% if l.failed %}<i class="fail" style="width: {{ l.pct.failed }}%" title="{{ l.failed }} below threshold"></i>{% endif %}
+            {% if l.errored %}<i class="warn" style="width: {{ l.pct.errored }}%" title="{{ l.errored }} not scored"></i>{% endif %}
+            {% if l.info %}<i class="info" style="width: {{ l.pct.info }}%" title="{{ l.info }} informational"></i>{% endif %}
+          </span>
+          <span class="bval">{{ l.passed }}/{{ l.total }}</span>
+        </div>
+        {% endfor %}
+        <p class="legend-inline"><i class="dot pass"></i>passed <i class="dot fail"></i>below threshold <i class="dot warn"></i>not scored <i class="dot info"></i>informational</p>
+      </article>
+      {% set lat = stage_latency(run0.cases) %}
+      {% if lat %}
+      <article class="chart-card">
+        <h3>Latency by stage <span class="muted">(mean and p95)</span></h3>
+        {% for r in lat %}
+        <div class="lat-row" role="img" aria-label="{{ r.stage }}: mean {{ r.mean|fmt('ms') }}, p95 {{ r.p95|fmt('ms') }}">
+          <span class="brow-label">{{ r.stage }}</span>
+          <span class="lat-bars">
+            <span class="btrack"><i class="bfill brand" style="width: {{ r.p95_pct or 0 }}%" title="p95"></i><i class="bfill brand-soft" style="width: {{ r.mean_pct or 0 }}%" title="mean"></i></span>
+          </span>
+          <span class="bval">{{ r.mean|fmt('ms') }}<small class="muted"> · p95 {{ r.p95|fmt('ms') }}</small></span>
+        </div>
+        {% endfor %}
+        <p class="legend-inline"><i class="dot brand-soft"></i>mean <i class="dot brand"></i>p95</p>
+      </article>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if summary.has_issues %}
+  <section class="issues">
+    <h2>What needs attention</h2>
+
+    {% if summary.causes %}
+    <h3>Run problems <span class="muted">(root causes, not individual symptoms)</span></h3>
+    {% for c in summary.causes %}
+    <article class="cause {{ c.kind }}">
+      <div class="cause-title">{{ c.title }}</div>
+      {% if c.detail %}<code class="cause-detail">{{ c.detail }}</code>{% endif %}
+      <p class="cause-impact">
+        Affected {{ c.cases }} of {{ summary.cases_total }} case{{ "s" if summary.cases_total != 1 }}
+        {% if c.metrics %}· {{ c.metrics|length }} metric{{ "s" if c.metrics|length != 1 }} could not be scored{% endif %}
+      </p>
+      <p class="cause-hint"><strong>Likely fix:</strong> {{ c.hint }}</p>
+      {% if c.metrics %}
+      <details><summary>Metrics not scored</summary>
+        <p class="chips">{% for k in c.metrics %}<span class="chip">{{ k }}</span>{% endfor %}</p>
+      </details>
+      {% endif %}
+    </article>
+    {% endfor %}
+    {% endif %}
+
+    {% if summary.breaches %}
+    <h3>Below threshold</h3>
+    <table class="grid breaches">
+      <colgroup><col class="c-name">{% if report.mode == "multi" %}<col class="c-judge">{% endif %}<col class="c-num"><col class="c-num"><col class="c-num"></colgroup>
+      <thead><tr><th>Metric</th>{% if report.mode == "multi" %}<th>Judge</th>{% endif %}<th class="num">Value</th><th class="num">Threshold</th><th class="num">Gap</th></tr></thead>
+      <tbody>
+      {% for b in summary.breaches %}
+        <tr><td>{{ b.key }}</td>{% if report.mode == "multi" %}<td>{{ b.judge }}</td>{% endif %}<td class="num">{{ b.value }}</td><td class="num">{{ b.threshold }}</td><td class="num">{{ b.gap }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+  {% endif %}
+
+{% if report.mode == "single" %}
+  {% set run = report.runs[0] %}
+  <section>
+    <h2>Results by layer</h2>
+    {% set scores = metric_scores(run) %}
+    {% for layer, title, aggs in group_by_layer(run.aggregates) %}
+    <h3>{{ title }}</h3>
+    <div class="layer-charts">
+      <article class="chart-card">
+        <h4>Score vs threshold <span class="muted">(tick = threshold)</span></h4>
+        {% for a in aggs %}{{ bullet_row(a.name ~ (" (p95)" if a.aggregate_used == "p95" else ""), a.value, a.threshold, a.direction, a.unit) }}{% endfor %}
+      </article>
+      <article class="chart-card">
+        <h4>Distribution across cases</h4>
+        <div class="hist-grid">
+          {% for a in aggs %}{% if scores.get(a.key) %}{{ hist_card(a.name, scores[a.key], a.threshold, a.direction, a.unit) }}{% endif %}{% endfor %}
+        </div>
+      </article>
+    </div>
+    <table class="grid results">
+      <colgroup><col class="c-name"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-status"></colgroup>
+      <thead><tr><th>Metric</th><th class="num">Value</th><th class="num">Threshold</th><th class="num">Mean</th><th class="num">Min</th><th class="num">Max</th><th class="num">Pass rate</th><th class="num">Scored</th><th class="center">Status</th></tr></thead>
+      <tbody>
+      {% for a in aggs %}
+        <tr>
+          <td>{{ a.name }}{% if a.aggregate_used == "p95" %} <span class="muted">(p95)</span>{% endif %}</td>
+          <td class="num">{{ a.value|fmt(a.unit) }}</td>
+          <td class="num">{{ ("≥ " if a.direction == "min" else "≤ ") ~ (a.threshold|fmt(a.unit)) if a.threshold is not none else "–" }}</td>
+          <td class="num">{{ a.mean|fmt(a.unit) }}</td>
+          <td class="num">{{ a.min|fmt(a.unit) }}</td>
+          <td class="num">{{ a.max|fmt(a.unit) }}</td>
+          <td class="num">{% if a.case_pass_rate is not none %}{{ "%.0f%%"|format(a.case_pass_rate * 100) }}<span class="bar {{ 'bad' if a.case_pass_rate < 0.6 else ('warn' if a.case_pass_rate < 0.9) }}"><i style="width: {{ (a.case_pass_rate * 100)|round|int }}%"></i></span>{% else %}–{% endif %}</td>
+          <td class="num">{{ a.n }}{% if a.errors %}<span class="muted"> +{{ a.errors }} err</span>{% endif %}</td>
+          <td class="center">{{ agg_badge(a) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endfor %}
+  </section>
+{% else %}
+  <section>
+    <h2>Multi-run statistics</h2>
+    <p class="muted">Each value is the per-run aggregate; the gate compares the mean across runs.
+      Standard deviation shows run-to-run (judge) variance.</p>
+    {% for layer, title, rows in group_by_layer(report.multi) %}
+    <h3>{{ title }}</h3>
+    <article class="chart-card layer-chart-single">
+      <h4>Spread across runs <span class="muted">(bar = min–max, dot = mean, tick = threshold)</span></h4>
+      {% for m in rows %}{{ range_row(m) }}{% endfor %}
+    </article>
+    <table class="grid results multi">
+      <colgroup><col class="c-name"><col class="c-judge"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-status"></colgroup>
+      <thead><tr><th>Metric</th><th>Judge</th><th class="num">Runs</th><th class="num">Mean</th><th class="num">Std dev</th><th class="num">Min</th><th class="num">Max</th><th class="num">Threshold</th><th class="center">Status</th></tr></thead>
+      <tbody>
+      {% for m in rows %}
+        <tr>
+          <td>{{ m.name }}</td><td>{{ m.judge }}</td><td class="num">{{ m.runs }}</td>
+          <td class="num">{{ m.mean|fmt(m.unit) }}</td><td class="num">{{ m.std|fmt(m.unit) }}</td>
+          <td class="num">{{ m.min|fmt(m.unit) }}</td><td class="num">{{ m.max|fmt(m.unit) }}</td>
+          <td class="num">{{ ("≥ " if m.direction == "min" else "≤ ") ~ (m.threshold|fmt(m.unit)) if m.threshold is not none else "–" }}</td>
+          <td class="center">{% if m.mean is none %}<span class="badge fail">ERROR</span>{% else %}<span class="badge {{ m.passed|status_class }}">{{ m.passed|status_label }}</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endfor %}
+  </section>
+{% endif %}
+
+  <section id="cases">
+    <h2>Case details{% if report.mode == "multi" %} <span class="muted">(first run of the first judge)</span>{% endif %}</h2>
+    {# Every case is in the page; report.js shows `page_size` at a time and fills the pager placeholders. #}
+    <p class="muted page-info" data-page-info data-suffix="{{ '· problem cases first' if cases_order == 'failed_first' else '' }}"></p>
+    <nav class="pager" data-pager aria-label="Case pages" hidden></nav>
+    <div id="case-list" data-page-size="{{ page_size }}" data-pager-pages="{{ pager_pages }}">
+      {% for c in cases %}{{ render_case(c) }}{% endfor %}
+    </div>
+    <nav class="pager" data-pager aria-label="Case pages" hidden></nav>
+  </section>
+</main>
+<footer>Generated by ragqa {{ report.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</footer>
+</body>
+</html>

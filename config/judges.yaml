@@ -1,0 +1,48 @@
+# judges.yaml - LLM-as-judge providers. Groq is the default.
+#
+# Select at run time with, in priority order:  --judge / --judges (CLI)  >
+# JUDGE_PROVIDER (env)  >  `default` below.
+# Models can be changed here; API keys come from the env var named in api_key_env.
+# Bedrock has no API key: it uses the AWS credential chain (env keys, AWS_PROFILE/SSO, IAM role,
+# or AWS_BEARER_TOKEN_BEDROCK). Make sure the model is enabled in your account/region.
+# Jev (TypeSafe System One) is an alternative to the LLM judges: it answers yes/no questions with
+# probabilities instead of generating text. Select it with JUDGE_PROVIDER=jev or --judge jev;
+# its settings come from .env (JEV_API_KEY, JEV_API_URL, JEV_MODEL). Every LLM-judged metric has a
+# Jev implementation in src/ragqa/metrics/jev.py.
+# Add a provider: new module in src/ragqa/judges/ + a block here (see judges/base.py).
+
+default: groq
+max_retries: 5            # per judge call, exponential backoff (handles rate limits)
+
+providers:
+  groq:
+    model: ${GROQ_MODEL:-openai/gpt-oss-20b}
+    api_key_env: GROQ_API_KEY
+    temperature: 0.0
+    max_tokens: 4096        # gpt-oss is a reasoning model: reasoning tokens count against this limit
+  anthropic:
+    model: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+    api_key_env: ANTHROPIC_API_KEY
+    temperature: 0.0
+    max_tokens: 2048
+  openai:
+    model: ${OPENAI_MODEL:-gpt-4o}
+    api_key_env: OPENAI_API_KEY
+    temperature: 0.0
+    max_tokens: 2048
+  google:
+    model: ${GOOGLE_MODEL:-gemini-2.5-pro}
+    api_key_env: GOOGLE_API_KEY
+    temperature: 0.0
+    max_tokens: 2048
+  bedrock:
+    # Any Bedrock text model id or inference-profile id (Claude, Nova, Llama, Mistral, ...).
+    model: ${BEDROCK_MODEL:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
+    temperature: 0.0
+    max_tokens: 2048
+    extra:
+      region: ${AWS_REGION:-us-east-1}
+  jev:
+    model: ${JEV_MODEL:-jev-latest}
+    api_key_env: JEV_API_KEY
+    base_url: ${JEV_API_URL:-https://api.typesafe.ai/v1/systemone}

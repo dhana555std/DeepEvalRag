@@ -1,0 +1,50 @@
+{#- _case.html.j2 - markup of one case (used by report.html.j2). Macro: render_case(c) -#}
+{% from "_charts.html.j2" import bullet_row %}
+{% macro render_case(c) %}
+<details class="case {{ 'pass' if c.passed else 'fail' }}" id="case-{{ c.case_id }}" data-case>
+  <summary>
+    <span class="badge {{ 'pass' if c.passed else 'fail' }}">{{ "PASS" if c.passed else "FAIL" }}</span>
+    <strong>{{ c.case_id }}</strong> · {{ c.question }}
+    <span class="muted">[{{ c.category }}]</span>
+  </summary>
+  <div class="case-body">
+    <div class="qa">
+      <h4>Answer</h4><p>{{ c.answer if c.answer else "(no answer)" }}</p>
+      <h4>Expected answer</h4><p>{{ c.expected_answer }}</p>
+      {% if c.citations %}<h4>Citations</h4><p>{{ c.citations|join(", ") }}</p>{% endif %}
+      <h4>Stages</h4>
+      <ul class="stages">
+      {% for s in c.stages %}
+        <li><span class="badge {{ 'pass' if s.ok else 'fail' }}">{{ s.stage }}</span> {{ s.latency_ms|fmt("ms") }}{% if s.error %} <span class="muted">– {{ s.error|short_error }}</span>{% endif %}</li>
+      {% endfor %}
+      </ul>
+      {% if c.contexts %}
+      <h4>Retrieved context ({{ c.contexts|length }})</h4>
+      <ol class="contexts">{% for t in c.contexts %}<li>{{ t }}</li>{% endfor %}</ol>
+      {% endif %}
+    </div>
+    {% set scored = c.metrics|rejectattr("skipped")|selectattr("score", "ne", none)|list %}
+    {% if scored %}
+    <div class="case-chart">
+      <h4>Scores vs thresholds</h4>
+      {% for m in scored %}{{ bullet_row(m.key, m.score, m.threshold, m.direction, m.unit) }}{% endfor %}
+    </div>
+    {% endif %}
+    <table class="grid metrics">
+      <colgroup><col class="c-key"><col class="c-num"><col class="c-num"><col class="c-status"><col class="c-reason"></colgroup>
+      <thead><tr><th>Metric</th><th class="num">Score</th><th class="num">Threshold</th><th class="center">Status</th><th>Reason</th></tr></thead>
+      <tbody>
+      {% for m in c.metrics %}
+        <tr class="{{ 'skipped' if m.skipped }}">
+          <td>{{ m.key }}</td>
+          <td class="num">{{ "–" if m.skipped or m.score is none else m.score|fmt(m.unit) }}</td>
+          <td class="num">{{ ("≥ " if m.direction == "min" else "≤ ") ~ (m.threshold|fmt(m.unit)) if m.threshold is not none else "–" }}</td>
+          <td class="center">{% if m.skipped %}<span class="badge info">SKIP</span>{% elif m.error %}<span class="badge fail">ERROR</span>{% else %}<span class="badge {{ m.passed|status_class }}">{{ m.passed|status_label }}</span>{% endif %}</td>
+          <td class="reason">{{ m.error|short_error if m.error else (m.reason or "") }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+{% endmacro %}

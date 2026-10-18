@@ -1,0 +1,56 @@
+{#- _charts.html.j2 - chart building blocks (pure HTML/CSS, themed via CSS variables). See charts.py for the data.
+    Macros: bullet_row, range_row, donut_card, hist_card -#}
+{% macro tone(ok) %}{{ 'pass' if ok is true else ('fail' if ok is false else 'info') }}{% endmacro %}
+
+{# value bar with a threshold tick; `label` is the row title #}
+{% macro bullet_row(label, value, threshold, direction, unit) %}
+{% set b = bullet(value, threshold, direction, unit) %}
+{% if b %}
+<div class="brow" role="img" aria-label="{{ label }}: {{ value|fmt(unit) }}{% if threshold is not none %}, threshold {{ threshold|fmt(unit) }}{% endif %}">
+  <span class="brow-label" title="{{ label }}">{{ label }}</span>
+  <span class="btrack"><i class="bfill {{ tone(b.ok) }}" style="width: {{ b.fill }}%"></i>{% if b.tick is not none %}<b class="btick" style="left: {{ b.tick }}%" title="threshold {{ threshold|fmt(unit) }}"></b>{% endif %}</span>
+  <span class="bval">{{ value|fmt(unit) }}</span>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# min-max whisker + mean dot across runs #}
+{% macro range_row(m) %}
+{% set r = range_bar(m.min, m.max, m.mean, m.threshold, m.direction, m.unit) %}
+{% if r %}
+<div class="brow" role="img" aria-label="{{ m.name }} across {{ m.runs }} runs: mean {{ m.mean|fmt(m.unit) }}, min {{ m.min|fmt(m.unit) }}, max {{ m.max|fmt(m.unit) }}">
+  <span class="brow-label" title="{{ m.name }} ({{ m.judge }})">{{ m.name }}</span>
+  <span class="btrack"><i class="brange {{ tone(r.ok) }}" style="left: {{ r.left }}%; width: {{ r.width }}%" title="min {{ m.min|fmt(m.unit) }} – max {{ m.max|fmt(m.unit) }}"></i><u class="bdot {{ tone(r.ok) }}" style="left: {{ r.mean }}%" title="mean {{ m.mean|fmt(m.unit) }}"></u>{% if r.tick is not none %}<b class="btick" style="left: {{ r.tick }}%" title="threshold {{ m.threshold|fmt(m.unit) }}"></b>{% endif %}</span>
+  <span class="bval">{{ m.mean|fmt(m.unit) }}</span>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# donut with a centre figure and a legend; segments = [(label, value, tone)] #}
+{% macro donut_card(title, segments, centre, sub) %}
+{% set d = donut(segments) %}
+<article class="chart-card">
+  <h3>{{ title }}</h3>
+  <div class="donut-wrap">
+    <div class="donut" style="background: {{ d.style }}" role="img" aria-label="{{ title }}: {% for i in d['items'] %}{{ i.label }} {{ i.value|int }}{{ ', ' if not loop.last }}{% endfor %}"><div class="donut-hole"><strong>{{ centre }}</strong><small>{{ sub }}</small></div></div>
+    <ul class="legend">
+      {% for i in d['items'] %}<li><i class="dot {{ i.tone }}"></i>{{ i.label }} <strong>{{ i.value|int }}</strong></li>{% endfor %}
+    </ul>
+  </div>
+</article>
+{% endmacro %}
+
+{# small histogram of per-case scores with the threshold marked #}
+{% macro hist_card(name, values, threshold, direction, unit) %}
+{% set h = histogram(values, threshold, direction, unit) %}
+{% if h %}
+<figure class="hist" role="img" aria-label="Distribution of {{ name }} over {{ h.n }} cases">
+  <figcaption>{{ name }} <span class="muted">n={{ h.n }} · mean {{ h.mean|fmt(unit) }}</span></figcaption>
+  <div class="hist-plot">
+    <div class="hist-bars">{% for b in h.bins %}<i class="{{ tone(b.ok) }}" style="height: {{ b.h }}%" title="{{ b.lo|fmt(unit) }} – {{ b.hi|fmt(unit) }}: {{ b.count }} case{{ 's' if b.count != 1 }}"></i>{% endfor %}</div>
+    {% if h.tick is not none %}<b class="hist-tick" style="left: {{ h.tick }}%" title="threshold {{ threshold|fmt(unit) }}"></b>{% endif %}
+  </div>
+  <div class="hist-axis"><span>{{ h.lo|fmt(unit) }}</span><span>{{ h.hi|fmt(unit) }}</span></div>
+</figure>
+{% endif %}
+{% endmacro %}

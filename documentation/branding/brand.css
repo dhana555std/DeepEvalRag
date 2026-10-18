@@ -1,0 +1,17 @@
+/*
+ * Sample branding overlay for the HTML report.
+ *
+ * Enable it in config/reporting.yaml:
+ *     css: documentation/branding/brand.css
+ *     logo: documentation/branding/logo.png      # optional
+ *
+ * It is loaded AFTER the default report.css, so overriding the :root variables is enough.
+ * Copy this file, change the values, and keep it under your own version control.
+ */
+:root {
+  --brand: #7b2cbf;
+  --brand-2: #e0457b;
+  --font: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --pass: #0f7b5f;
+  --fail: #b3261e;
+}

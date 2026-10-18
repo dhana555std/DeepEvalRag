@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Evaluation report">
+  <!-- Default report favicon: rising bars (scores) with a check mark (passed gate).
+       Replace via `favicon:` in config/reporting.yaml (svg, png or ico). -->
+  <rect width="64" height="64" rx="14" fill="#1f4fd8"/>
+  <rect x="12" y="38" width="9" height="14" rx="2" fill="#ffffff" opacity=".7"/>
+  <rect x="25" y="30" width="9" height="22" rx="2" fill="#ffffff" opacity=".85"/>
+  <rect x="38" y="22" width="9" height="30" rx="2" fill="#ffffff"/>
+  <path d="M14 20 l7 7 l14 -15" fill="none" stroke="#7ce3a6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

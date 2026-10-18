@@ -1,0 +1,67 @@
+# rag_api.yaml - how ragqa talks to the RAG application under test.
+#
+# ${VAR} / ${VAR:-default} are resolved from the environment (.env or CI secrets),
+# so URLs and tokens never live in this file.
+#
+# Adding a pipeline stage later (reranker, LangGraph node, ...): add a block below
+# named after the stage, implement it in src/ragqa/stages/, and list it in
+# pipeline.stages at the right position.
+
+pipeline:
+  stages: [retrieval, generation]      # executed in order, per golden case
+  retriever_stage: retrieval           # stage read by retriever.* metrics
+  final_stage: generation              # stage whose answer is judged by triad / application metrics
+  # Optional: also run the generator on the GOLDEN context to judge it in isolation from
+  # retrieval quality. Needs a generation API that accepts contexts (the current /v1/answer
+  # retrieves internally, so this is not usable with it).
+  # Uncomment both lines to enable (shares the `generation` endpoint).
+  # generator_isolated_stage: generation_golden
+  concurrency: 4                       # concurrent cases hitting the RAG API
+
+retrieval:
+  url: ${RETRIEVAL_API_URL:-http://localhost:8080/v1/retrieve}
+  method: POST
+  timeout_s: ${RAG_TIMEOUT_S:-30}
+  retries: 2
+  auth:                                # none | bearer | header
+    type: ${RETRIEVAL_AUTH_TYPE:-none}
+    token_env: RETRIEVAL_API_TOKEN     # NAME of the env var holding the token
+    header: X-API-Key                  # header name when type=header
+  headers: {}
+  request:                             # body template; "{question}" keeps its type
+    query: "{question}"
+    top_k: 5
+  response:
+    chunks: results                    # path to the list of retrieved items
+    chunk_text: text                   # path inside each item ("" if items are plain strings)
+    chunk_id: chunk_id
+    chunk_score: score
+  usage: {}                            # retrieval usually reports no tokens/cost
+
+generation:
+  url: ${GENERATION_API_URL:-http://localhost:8080/v1/answer}
+  method: POST
+  timeout_s: ${RAG_TIMEOUT_S:-30}
+  retries: 2
+  auth:
+    type: ${GENERATION_AUTH_TYPE:-none}
+    token_env: GENERATION_API_TOKEN
+    header: X-API-Key
+  headers: {}
+  request:
+    query: "{question}"
+    top_k: 5                           # the API retrieves internally; no contexts are sent
+    # (to send contexts to an API that accepts them: contexts: "{chunks_text}" or "{chunks}")
+  response:
+    answer: answer
+    citations: cited_ranks             # ranks (ints) are resolved against `sources` below
+    sources: sources                   # sources the answer was generated from -> context_used
+    source_text: text
+    source_rank: rank
+    citation_id: metadata.file_name    # how a cited source is named (matched to expected_citations)
+  usage:                               # remove/blank any path your API does not return
+    prompt_tokens: usage.prompt_tokens
+    completion_tokens: usage.completion_tokens
+    cost_usd: ""                       # e.g. usage.cost, or leave "" and set prices below
+    price_per_1k_prompt: ${PRICE_PER_1K_PROMPT:-0}
+    price_per_1k_completion: ${PRICE_PER_1K_COMPLETION:-0}
