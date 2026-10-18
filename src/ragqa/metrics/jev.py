@@ -15,7 +15,7 @@ as they do with DeepEval) and receive the same ``LLMTestCase`` the DeepEval metr
 from __future__ import annotations
 
 import re
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from deepeval.test_case import LLMTestCase
 

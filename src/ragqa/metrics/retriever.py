@@ -15,7 +15,13 @@ from __future__ import annotations
 from deepeval.metrics import ContextualPrecisionMetric, ContextualRecallMetric
 from deepeval.test_case import LLMTestCase
 
-from ragqa.metrics.base import DeepEvalSpec, EvalContext, Skip, has_no_ground_truth, register_metric
+from ragqa.metrics.base import (
+    DeepEvalSpec,
+    EvalContext,
+    Skip,
+    has_no_ground_truth,
+    register_metric,
+)
 
 
 class _RetrieverSpec(DeepEvalSpec):

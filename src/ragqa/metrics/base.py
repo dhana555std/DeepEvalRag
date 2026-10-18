@@ -26,8 +26,9 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Literal
+from typing import Any, Literal
 
 from ragqa.config import PipelineCfg
 from ragqa.models import CaseTrace, Chunk, GoldenCase, StageOutput
@@ -90,7 +91,7 @@ class EvalContext:
     generator: AnswerView
     ops: list[StageOutput]  # stages of the real application (excludes the isolated generator)
     judge: Any | None
-    _cache: dict[Any, "asyncio.Future[Outcome]"] = field(default_factory=dict)
+    _cache: dict[Any, asyncio.Future[Outcome]] = field(default_factory=dict)
 
     @property
     def case(self) -> GoldenCase:

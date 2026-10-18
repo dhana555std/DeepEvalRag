@@ -29,7 +29,7 @@ from ragqa.config import EndpointCfg
 from ragqa.models import CaseTrace, GoldenCase, StageOutput
 from ragqa.registry import Registry
 
-stages: Registry[type["Stage"]] = Registry("stage")
+stages: Registry[type[Stage]] = Registry("stage")
 
 
 class Stage(ABC):

@@ -22,7 +22,13 @@ from deepeval.metrics import AnswerRelevancyMetric, FaithfulnessMetric
 from deepeval.test_case import LLMTestCase
 
 from ragqa.metrics.base import (
-    DeepEvalSpec, EvalContext, MetricSpec, Outcome, Skip, has_no_ground_truth, register_metric,
+    DeepEvalSpec,
+    EvalContext,
+    MetricSpec,
+    Outcome,
+    Skip,
+    has_no_ground_truth,
+    register_metric,
 )
 
 

@@ -18,7 +18,7 @@ from ragqa.config import ReportingCfg
 from ragqa.models import RunReport
 from ragqa.registry import Registry
 
-reporters: Registry[type["Reporter"]] = Registry("reporter")
+reporters: Registry[type[Reporter]] = Registry("reporter")
 
 
 class Reporter(ABC):

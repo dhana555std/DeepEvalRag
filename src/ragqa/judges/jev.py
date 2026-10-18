@@ -24,7 +24,12 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_random_exponential
+from tenacity import (
+    AsyncRetrying,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 
 from ragqa.judges.base import BaseJudge, judges
 

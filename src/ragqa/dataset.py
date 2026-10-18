@@ -77,5 +77,5 @@ def _warnings(cases: list[GoldenCase]) -> list[str]:
     if not missing:
         return []
     listed = ", ".join(missing[:_MAX_LISTED]) + (", ..." if len(missing) > _MAX_LISTED else "")
-    return [f"{len(missing)} factual case(s) have no expected_context "
-            f"(isolated generator stage is skipped for them): {listed}"]
+    return [(f"{len(missing)} factual case(s) have no expected_context "
+             f"(isolated generator stage is skipped for them): {listed}")]

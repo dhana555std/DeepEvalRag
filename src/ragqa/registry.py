@@ -18,7 +18,8 @@ Usage
 
 from __future__ import annotations
 
-from typing import Callable, Generic, Iterator, TypeVar
+from collections.abc import Callable, Iterator
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 

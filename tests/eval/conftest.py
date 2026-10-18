@@ -55,7 +55,7 @@ def report():
 def pytest_generate_tests(metafunc):
     """Parametrise ``metric_key`` with the enabled metrics of the module's ``LAYER``."""
     if "metric_key" in metafunc.fixturenames:
-        layer = getattr(metafunc.module, "LAYER")
+        layer = metafunc.module.LAYER
         cfg = cfgmod.load_thresholds()
         keys = [k for k, m in cfg.metrics.items() if m.enabled and k.startswith(layer + ".")]
         metafunc.parametrize("metric_key", keys, ids=keys)

@@ -13,10 +13,20 @@ the Generator layer already did when both layers look at the same stage.
 
 from __future__ import annotations
 
-from deepeval.metrics import AnswerRelevancyMetric, ContextualRelevancyMetric, FaithfulnessMetric
+from deepeval.metrics import (
+    AnswerRelevancyMetric,
+    ContextualRelevancyMetric,
+    FaithfulnessMetric,
+)
 from deepeval.test_case import LLMTestCase
 
-from ragqa.metrics.base import DeepEvalSpec, EvalContext, Skip, has_no_ground_truth, register_metric
+from ragqa.metrics.base import (
+    DeepEvalSpec,
+    EvalContext,
+    Skip,
+    has_no_ground_truth,
+    register_metric,
+)
 from ragqa.metrics.generator import answer_case
 
 

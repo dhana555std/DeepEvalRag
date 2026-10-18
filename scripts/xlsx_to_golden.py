@@ -40,8 +40,8 @@ from pathlib import Path
 import openpyxl
 
 DOC_ID = re.compile(r"^\s*([A-Za-z]+\d[\w]*)")
-NOT_IN_DOCS = re.compile(r"^\s*not in the documents", re.I)
-NO_CITATION = re.compile(r"no citations?|answer is generic", re.I)
+NOT_IN_DOCS = re.compile(r"^\s*not in the documents", re.IGNORECASE)
+NO_CITATION = re.compile(r"no citations?|answer is generic", re.IGNORECASE)
 
 
 def tidy(value: object) -> str:

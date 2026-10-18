@@ -37,11 +37,23 @@ import deepeval
 from ragqa import config as cfgmod
 from ragqa.config import PipelineCfg, ThresholdsCfg
 from ragqa.dataset import load_dataset
-from ragqa.evaluation.aggregate import aggregate_multi, aggregate_run, compare, evaluate_gate
+from ragqa.evaluation.aggregate import (
+    aggregate_multi,
+    aggregate_run,
+    compare,
+    evaluate_gate,
+)
 from ragqa.judges import create_judge
 from ragqa.metrics import MetricSpec, enabled_specs
 from ragqa.metrics.base import EvalContext, Skip, build_context
-from ragqa.models import CaseResult, CaseTrace, MetricResult, RunReport, RunResult, StageSummary
+from ragqa.models import (
+    CaseResult,
+    CaseTrace,
+    MetricResult,
+    RunReport,
+    RunResult,
+    StageSummary,
+)
 from ragqa.stages import Pipeline
 
 

@@ -40,7 +40,8 @@ from ragqa.evaluation.aggregate import layer_sort_key
 from ragqa.models import RunReport
 from ragqa.reporting.base import Reporter, reporters
 from ragqa.reporting.charts import GLOBALS as CHART_GLOBALS
-from ragqa.reporting.summary import LAYER_TITLES, fmt_value as fmt, summarize
+from ragqa.reporting.summary import LAYER_TITLES, summarize
+from ragqa.reporting.summary import fmt_value as fmt
 
 _PKG = Path(__file__).parent
 

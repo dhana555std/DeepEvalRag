@@ -26,12 +26,17 @@ from abc import abstractmethod
 from typing import Any
 
 from deepeval.models import DeepEvalBaseLLM
-from tenacity import AsyncRetrying, Retrying, stop_after_attempt, wait_random_exponential
+from tenacity import (
+    AsyncRetrying,
+    Retrying,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 
 from ragqa.config import JudgeProviderCfg
 from ragqa.registry import Registry
 
-judges: Registry[type["BaseJudge"]] = Registry("judge")
+judges: Registry[type[BaseJudge]] = Registry("judge")
 
 
 class JudgeConfigError(RuntimeError):

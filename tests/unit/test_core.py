@@ -8,7 +8,12 @@ import pytest
 
 from ragqa.config import JudgeProviderCfg, JudgesCfg, MetricCfg, ThresholdsCfg
 from ragqa.dataset import DatasetError, load_dataset
-from ragqa.evaluation.aggregate import aggregate_multi, aggregate_run, evaluate_gate, percentile
+from ragqa.evaluation.aggregate import (
+    aggregate_multi,
+    aggregate_run,
+    evaluate_gate,
+    percentile,
+)
 from ragqa.jsonpath import extract
 from ragqa.judges import JudgeConfigError, create_judge, judges
 from ragqa.models import CaseResult, MetricResult, RunResult

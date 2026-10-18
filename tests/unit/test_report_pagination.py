@@ -200,7 +200,7 @@ def _dump(report_dir: Path, suffix: str = "", inject: str = "") -> _Dom:
         page = copy
     out = subprocess.run(
         [CHROME, "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=4000", "--dump-dom",
-         f"file://{page}{suffix}"], capture_output=True, text=True, timeout=60).stdout
+         f"file://{page}{suffix}"], check=False, capture_output=True, text=True, timeout=60).stdout
     dom = _Dom()
     dom.feed(out)
     return dom

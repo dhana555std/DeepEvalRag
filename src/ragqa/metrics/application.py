@@ -23,11 +23,18 @@ Operations (deterministic, measured on the real API calls; excludes the isolated
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from deepeval.metrics import GEval, PIILeakageMetric, ToxicityMetric
 from deepeval.test_case import LLMTestCase, SingleTurnParams
 
 from ragqa.metrics.base import (
-    DeepEvalSpec, EvalContext, MetricSpec, Outcome, Skip, has_no_ground_truth, register_metric,
+    DeepEvalSpec,
+    EvalContext,
+    MetricSpec,
+    Outcome,
+    Skip,
+    register_metric,
 )
 
 P = SingleTurnParams
@@ -55,7 +62,7 @@ class _QualitySpec(_AppSpec):
     """
 
     criteria: str = ""
-    params: list = [P.INPUT, P.ACTUAL_OUTPUT, P.EXPECTED_OUTPUT]
+    params: ClassVar[list] = [P.INPUT, P.ACTUAL_OUTPUT, P.EXPECTED_OUTPUT]
     skip_expected_refusal: bool = True
 
     def extra_guard(self, ctx: EvalContext) -> None:
@@ -96,7 +103,7 @@ class Completeness(_QualitySpec):
 class Style(_QualitySpec):
     name = "style"
     cache_name = "geval_style"
-    params = [P.INPUT, P.ACTUAL_OUTPUT]
+    params: ClassVar[list] = [P.INPUT, P.ACTUAL_OUTPUT]
     criteria = (
         "Rubric: the answer is professional, concise, neutral in tone, easy to read, directly "
         "addresses the user, and avoids filler, hedging and unexplained jargon."

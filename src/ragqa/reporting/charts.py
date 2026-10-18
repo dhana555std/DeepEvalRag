@@ -10,8 +10,9 @@ Registered as Jinja globals by ``html_reporter.py``.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from statistics import mean
-from typing import Any, Iterable
+from typing import Any
 
 from ragqa.evaluation.aggregate import layer_sort_key
 from ragqa.models import CaseResult, RunResult
@@ -132,7 +133,7 @@ def stage_latency(cases: list[CaseResult]) -> list[dict]:
     rows = []
     for stage, vals in by_stage.items():
         vals.sort()
-        p95 = vals[min(len(vals) - 1, int(round(0.95 * (len(vals) - 1))))] if vals else None
+        p95 = vals[min(len(vals) - 1, round(0.95 * (len(vals) - 1)))] if vals else None
         rows.append({"stage": stage, "n": len(vals), "failed": failures.get(stage, 0),
                      "mean": mean(vals) if vals else None, "p95": p95})
     top = max((r["p95"] for r in rows if r["p95"] is not None), default=0.0) or 1.0

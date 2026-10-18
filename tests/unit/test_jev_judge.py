@@ -24,7 +24,7 @@ PROBABILITY = 0.9
 
 
 class FakeJev(BaseHTTPRequestHandler):
-    def do_POST(self):  # noqa: N802
+    def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         REQUESTS.append({"auth": self.headers.get("Authorization"), "body": body})
         answers = {k: {"type": "noul", "noul": PROBABILITY} for k in body["questions"]}

@@ -20,7 +20,7 @@ LangGraph node, ...) adds a key; no model changes are needed.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -164,7 +164,7 @@ class GateResult(BaseModel):
 class RunResult(BaseModel):
     run_id: str
     judge: str
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     duration_s: float = 0.0
     cases: list[CaseResult] = Field(default_factory=list)
     aggregates: list[Aggregate] = Field(default_factory=list)
@@ -194,7 +194,7 @@ class RunReport(BaseModel):
 
     title: str
     mode: Literal["single", "multi"]
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     dataset: str = ""
     dataset_size: int = 0
     judges: list[str] = Field(default_factory=list)
