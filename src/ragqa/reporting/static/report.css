@@ -1,7 +1,7 @@
 /*
  * report.css - default styling of the evaluation report.
  *
- * Themes: System (default, follows the OS), Light and Dark. The switcher in the header sets
+ * Themes: Dark (default), Light and System (follows the OS). The switcher in the header sets
  * <html data-theme="system|light|dark"> (report.js, remembered in localStorage). Every colour is a
  * CSS variable, so a theme is just a set of overrides.
  *

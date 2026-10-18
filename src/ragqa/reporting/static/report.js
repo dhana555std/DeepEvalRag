@@ -44,7 +44,7 @@
     return items;
   }
 
-  /** Theme switcher: System (default) / Light / Dark, remembered in localStorage. */
+  /** Theme switcher: Dark (default) / Light / System, remembered in localStorage. */
   function initTheme() {
     var root = document.documentElement;
     var buttons = Array.prototype.slice.call(document.querySelectorAll('[data-theme-set]'));
@@ -54,12 +54,12 @@
       buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-set') === mode)); });
       if (!save) return;
       try {
-        if (mode === 'system') localStorage.removeItem('ragqa-theme'); else localStorage.setItem('ragqa-theme', mode);
+        localStorage.setItem('ragqa-theme', mode);
       } catch (e) { /* file:// or private mode: the choice just is not remembered */ }
     }
     var saved = null;
     try { saved = localStorage.getItem('ragqa-theme'); } catch (e) { /* ignore */ }
-    apply(saved === 'light' || saved === 'dark' ? saved : 'system', false);
+    apply(saved === 'light' || saved === 'dark' || saved === 'system' ? saved : (root.getAttribute('data-default-theme') || 'dark'), false);
     buttons.forEach(function (b) { b.addEventListener('click', function () { apply(b.getAttribute('data-theme-set'), true); }); });
   }
 

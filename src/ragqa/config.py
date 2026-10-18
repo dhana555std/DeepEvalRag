@@ -176,6 +176,7 @@ class ReportingCfg(BaseModel):
     template_dir: str | None = None  # directory with a custom report.html.j2
     page_size: int = 20  # cases shown per page in the HTML report (client-side); 0 = no pagination
     cases_order: str = "failed_first"  # failed_first | dataset
+    theme: str = "dark"  # default colour theme of the HTML report: dark | light | system
     pager_pages: int = 20  # max page numbers shown at once ("sheet"); « » jump between sheets
 
 

@@ -23,6 +23,9 @@ like the CSS) shows ``page_size`` cases at a time (default 20) and builds the pa
 ``pager_pages`` (default 20); ``«`` / ``»`` jump between sheets. ``#page=3`` in the URL selects a
 page. Without JavaScript (or when printing) all cases are visible. ``cases_order`` is
 ``failed_first`` (default; problems on page 1) or ``dataset``. ``page_size: 0`` disables paging.
+
+``theme`` (``dark`` default, ``light`` or ``system``) is the theme the report opens in until the
+viewer picks another with the switcher (remembered in the browser).
 """
 
 from __future__ import annotations
@@ -116,7 +119,7 @@ class HtmlReporter(Reporter):
         html = self._env(cfg).get_template("report.html.j2").render(
             report=report, summary=summarize(report), brand_css=brand_css, logo=logo, favicon=favicon,
             cases=cases, page_size=max(cfg.page_size, 0), pager_pages=max(cfg.pager_pages, 1),
-            cases_order=cfg.cases_order,
+            cases_order=cfg.cases_order, theme=cfg.theme if cfg.theme in ("dark", "light", "system") else "dark",
         )
         path = out_dir / "report.html"
         path.write_text(html, encoding="utf-8")
