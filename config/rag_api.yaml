@@ -19,7 +19,7 @@ pipeline:
   concurrency: 4                       # concurrent cases hitting the RAG API
 
 retrieval:
-  url: ${RETRIEVAL_API_URL:-http://localhost:8080/v1/retrieve}
+  url: ${RETRIEVAL_API_URL:-http://127.0.0.1:8080/v1/retrieve}
   method: POST
   timeout_s: ${RAG_TIMEOUT_S:-30}
   retries: 2
@@ -39,7 +39,7 @@ retrieval:
   usage: {}                            # retrieval usually reports no tokens/cost
 
 generation:
-  url: ${GENERATION_API_URL:-http://localhost:8080/v1/answer}
+  url: ${GENERATION_API_URL:-http://127.0.0.1:8080/v1/answer}
   method: POST
   timeout_s: ${RAG_TIMEOUT_S:-30}
   retries: 2

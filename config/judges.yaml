@@ -11,7 +11,7 @@
 # Jev implementation in src/ragqa/metrics/jev.py.
 # Add a provider: new module in src/ragqa/judges/ + a block here (see judges/base.py).
 
-default: groq
+default: bedrock
 max_retries: 5            # per judge call, exponential backoff (handles rate limits)
 
 providers:
@@ -37,11 +37,11 @@ providers:
     max_tokens: 2048
   bedrock:
     # Any Bedrock text model id or inference-profile id (Claude, Nova, Llama, Mistral, ...).
-    model: ${BEDROCK_MODEL:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
+    model: ${BEDROCK_MODEL:-amazon.nova-lite-v1:0}
     temperature: 0.0
     max_tokens: 2048
     extra:
-      region: ${AWS_REGION:-us-east-1}
+      region: ${AWS_REGION:-us-east-2}
   jev:
     model: ${JEV_MODEL:-jev-latest}
     api_key_env: JEV_API_KEY
