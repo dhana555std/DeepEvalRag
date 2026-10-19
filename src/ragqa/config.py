@@ -59,7 +59,7 @@ def load_yaml(name: str, directory: Path | None = None) -> dict[str, Any]:
     path = (directory or config_dir()) / name
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {path}")
-    with path.open() as fh:
+    with path.open(encoding="utf-8") as fh:
         return _interpolate(yaml.safe_load(fh) or {})
 
 

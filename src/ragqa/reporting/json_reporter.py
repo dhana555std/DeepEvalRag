@@ -19,5 +19,5 @@ class JsonReporter(Reporter):
 
     def write(self, report: RunReport, cfg: ReportingCfg, out_dir: Path) -> list[Path]:
         path = out_dir / "results.json"
-        path.write_text(report.model_dump_json(indent=2))
+        path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
         return [path]
