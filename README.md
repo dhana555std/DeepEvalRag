@@ -256,8 +256,8 @@ The report includes charts: overview donuts (metric and case outcomes), health b
 *score vs threshold* bars and *score distribution* histograms (a spread chart in multi-run mode), and score bars inside each
 case. They are plain HTML/CSS (no JavaScript or libraries), so they follow the theme and print.
 
-The report has **System / Light / Dark** themes: the switcher in the header defaults to System (follows the OS) and
-remembers your choice in the browser. To brand one theme only, scope your overrides with `:root[data-theme="dark"]`.
+The report has **System / Light / Dark** themes: the report opens in **Dark** (set `theme: dark | light | system` in `config/reporting.yaml`), the switcher in the
+header changes it and the browser remembers your choice. To brand one theme only, scope your overrides with `:root[data-theme="dark"]`.
 
 The HTML, CSS and JavaScript are separate files so you can brand it without Python:
 `src/ragqa/reporting/templates/report.html.j2` (structure), `static/report.css` (design tokens as CSS variables) and
