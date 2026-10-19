@@ -84,16 +84,16 @@ def test_missing_expected_context_is_one_summary_warning(tmp_path):
 
 
 # ----------------------------------------------------------------------------- judges
-def test_all_providers_registered_and_groq_default():
+def test_all_providers_registered_and_bedrock_default():
     assert {"groq", "anthropic", "openai", "google", "bedrock"} <= set(judges.names())
     from ragqa.config import load_judges
 
-    assert load_judges().default == "groq"
+    assert load_judges().default == "bedrock"
 
 
 def test_judge_requires_api_key(monkeypatch):
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    monkeypatch.delenv("JUDGE_PROVIDER", raising=False)
+    monkeypatch.setenv("JUDGE_PROVIDER", "groq")
     with pytest.raises(JudgeConfigError, match="GROQ_API_KEY"):
         create_judge()
 

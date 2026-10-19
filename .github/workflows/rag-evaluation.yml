@@ -8,16 +8,15 @@
 #
 # Required repository configuration (Settings > Secrets and variables > Actions)
 #   Variables: RETRIEVAL_API_URL (e.g. https://host/v1/retrieve), GENERATION_API_URL (e.g. https://host/v1/answer),
-#              (optional) JUDGE_PROVIDER, RAGQA_RUNS, JEV_API_URL, JEV_MODEL
-#   Secrets:   GROQ_API_KEY (default judge) or ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY,
-#              or JEV_API_KEY when the judge is `jev` (TypeSafe Jev instead of an LLM),
-#              (optional) RETRIEVAL_API_TOKEN, GENERATION_API_TOKEN (the RAG API needs no auth for now),
+#              (optional) JUDGE_PROVIDER, RAGQA_RUNS
+#   Secrets:   AWS credentials for the default Bedrock judge (see below), or GROQ_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY,
+##              (optional) RETRIEVAL_API_TOKEN, GENERATION_API_TOKEN (the RAG API needs no auth for now),
 #              Bedrock judge: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (+ AWS_SESSION_TOKEN), variable AWS_REGION,
 #              or assume an IAM role with GitHub OIDC (aws-actions/configure-aws-credentials) before the eval step
 # The RAG API must be reachable from the runner (public/staging URL or self-hosted runner).
 
 # Trigger: MANUAL ONLY. Start it from GitHub: Actions > rag-evaluation > "Run workflow"
-# (or `gh workflow run rag-evaluation.yml -f runs=3 -f judge=jev -f only='retriever.*'`). It never runs on push or PR.
+# (or `gh workflow run rag-evaluation.yml -f runs=3 -f judge=bedrock -f only='retriever.*'`). It never runs on push or PR.
 
 name: rag-evaluation
 
@@ -28,7 +27,7 @@ on:
         description: "Scoring runs (1 = single run, >1 = multi run)"
         default: "1"
       judge:
-        description: "Judge provider (groq | anthropic | openai | google | bedrock | jev); empty = JUDGE_PROVIDER variable, else groq"
+        description: "Judge provider (bedrock | groq | anthropic | openai | google); empty = JUDGE_PROVIDER variable, else bedrock"
         default: ""
       only:
         description: "Metric patterns to run, e.g. 'retriever.*' or 'generator.*,application.latency_ms'; empty = all enabled"
@@ -67,7 +66,7 @@ jobs:
       GENERATION_API_URL: ${{ vars.GENERATION_API_URL }}
       RETRIEVAL_API_TOKEN: ${{ secrets.RETRIEVAL_API_TOKEN }}
       GENERATION_API_TOKEN: ${{ secrets.GENERATION_API_TOKEN }}
-      JUDGE_PROVIDER: ${{ inputs.judge || vars.JUDGE_PROVIDER || 'groq' }}
+      JUDGE_PROVIDER: ${{ inputs.judge || vars.JUDGE_PROVIDER || 'bedrock' }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -75,9 +74,6 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-      JEV_API_KEY: ${{ secrets.JEV_API_KEY }}
-      JEV_API_URL: ${{ vars.JEV_API_URL }}
-      JEV_MODEL: ${{ vars.JEV_MODEL }}
       AWS_REGION: ${{ vars.AWS_REGION }}
       BEDROCK_MODEL: ${{ vars.BEDROCK_MODEL }}
       RAGQA_RUNS: ${{ inputs.runs || vars.RAGQA_RUNS || '1' }}

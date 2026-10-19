@@ -13,7 +13,7 @@ retrieval endpoint and a generation endpoint) at four levels:
 Sub-packages (each is an extension point that follows the open-closed
 principle - add a module, never edit existing ones):
 
-* ``ragqa.judges``     - LLM-as-judge providers (Groq default, Anthropic, OpenAI, Google)
+* ``ragqa.judges``     - LLM-as-judge providers (Bedrock default, Groq, Anthropic, OpenAI, Google)
 * ``ragqa.stages``     - pipeline stages calling the RAG API (retrieval, generation, ...)
 * ``ragqa.metrics``    - metric specs grouped by layer
 * ``ragqa.evaluation`` - single-run / multi-run orchestration, aggregation and gating

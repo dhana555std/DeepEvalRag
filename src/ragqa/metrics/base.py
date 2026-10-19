@@ -162,11 +162,7 @@ class MetricSpec(ABC):
 
 
 class DeepEvalSpec(MetricSpec):
-    """A metric computed by a DeepEval metric class using the configured judge.
-
-    With the ``jev`` judge the DeepEval metric is bypassed and ``metrics/jev.py`` (keyed by
-    ``cache_name``) computes the score from Jev's yes/no probabilities.
-    """
+    """A metric computed by a DeepEval metric class using the configured judge."""
 
     cache_name: str = ""  # same cache_name + same stage => computed once per case
 
@@ -185,13 +181,6 @@ class DeepEvalSpec(MetricSpec):
         cache_key = (self.cache_name or self.key, out.stage if out else None)
 
         async def run() -> Outcome:
-            if getattr(ctx.judge, "is_jev", False):  # Jev judge: yes/no questions instead of a DeepEval metric
-                from ragqa.metrics.jev import IMPLEMENTATIONS
-
-                impl = IMPLEMENTATIONS.get(self.cache_name)
-                if impl is None:
-                    raise RuntimeError(f"metric {self.key} has no Jev implementation")
-                return await impl(ctx.judge, self.test_case(ctx))
             metric = self.build(ctx.judge)
             await metric.a_measure(self.test_case(ctx), _show_indicator=False)
             if metric.score is None:

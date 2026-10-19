@@ -2,7 +2,7 @@
 
 Production-grade, CI/CD-ready evaluation of an existing RAG application exposed over REST. It scores the
 **Retriever**, the **Generator**, the **RAG Triad** and the **whole application** against a golden dataset
-using an LLM judge (Groq by default; Claude, OpenAI, Google and Amazon Bedrock are drop-in alternatives), and produces a
+using an LLM judge (Amazon Bedrock by default; Groq, Claude, OpenAI and Google are drop-in alternatives), and produces a
 brandable HTML report plus machine-readable JSON. Built on DeepEval 4.x, managed with `uv`, MIT licensed.
 
 ![Architecture](documentation/images/architecture.png)
@@ -30,11 +30,11 @@ only on `correctness` (did it decline?) and the safety metrics; prompt-injection
 ## 2. Quick start
 
 Prerequisites: [`uv`](https://docs.astral.sh/uv/) (it installs Python 3.12 for you), network access to your RAG API, and a
-key for the judge (Groq by default).
+credentials for the judge (AWS credentials for Bedrock by default).
 
 ```bash
 uv sync                              # Python 3.12 + locked deps
-cp .env.example .env                 # set RETRIEVAL_API_URL, GENERATION_API_URL, GROQ_API_KEY
+cp .env.example .env                 # set RETRIEVAL_API_URL, GENERATION_API_URL, AWS credentials / AWS_REGION
 uv run ragqa validate-dataset        # check datasets/golden.jsonl
 uv run ragqa run --limit 1           # smoke test: one case, confirms API + judge work
 uv run ragqa run                     # full single run -> reports/report.html, reports/results.json
@@ -99,17 +99,16 @@ that accepts contexts; the default `/v1/answer` retrieves internally and ignores
 
 ## 4. Choose the LLM judge
 
-Groq (`openai/gpt-oss-20b`) is the default. Switch with `JUDGE_PROVIDER` (env), `--judge` (CLI) or `default:` in `config/judges.yaml`.
-Compare judges in one go with `ragqa multirun --judges groq,bedrock`.
+Amazon Bedrock (`amazon.nova-lite-v1:0`) is the default. Switch with `JUDGE_PROVIDER` (env), `--judge` (CLI) or `default:` in `config/judges.yaml`.
+Compare judges in one go with `ragqa multirun --judges bedrock,groq`.
 
 | Provider | `JUDGE_PROVIDER` | Key | Default model (override in `.env`) |
 |---|---|---|---|
-| Groq (default) | `groq` | `GROQ_API_KEY` | `GROQ_MODEL=openai/gpt-oss-20b` |
 | Anthropic Claude | `anthropic` | `ANTHROPIC_API_KEY` | `ANTHROPIC_MODEL=claude-sonnet-5-5` |
 | OpenAI | `openai` | `OPENAI_API_KEY` | `OPENAI_MODEL=gpt-4o` |
 | Google Gemini | `google` | `GOOGLE_API_KEY` | `GOOGLE_MODEL=gemini-2.5-pro` |
-| Amazon Bedrock | `bedrock` | AWS credential chain (see below), `AWS_REGION` | `BEDROCK_MODEL=us.anthropic.claude-sonnet-4-5-20250929-v1:0` |
-| Jev (TypeSafe), not an LLM | `jev` | `JEV_API_KEY` (+ optional `JEV_API_URL`) | `JEV_MODEL=jev-latest` (see *Jev as an alternative judge* below) |
+| Amazon Bedrock (default) | `bedrock` | AWS credential chain (see below), `AWS_REGION` | `BEDROCK_MODEL=amazon.nova-lite-v1:0` |
+| Groq | `groq` | `GROQ_API_KEY` | `GROQ_MODEL=openai/gpt-oss-20b` |
 
 **Bedrock** has no single API key: it uses the standard AWS credentials (`AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`,
 `AWS_PROFILE`/SSO, `AWS_BEARER_TOKEN_BEDROCK`, or an IAM role) and `AWS_REGION`. It uses the model-agnostic Converse API, so
@@ -117,29 +116,10 @@ Compare judges in one go with `ragqa multirun --judges groq,bedrock`.
 
 Model ids are configuration, not code: update them in `.env`/`config/judges.yaml` as providers release new models.
 `gpt-oss` is a reasoning model, so Groq's `max_tokens` is 4096 in `judges.yaml` (reasoning tokens count against it); keep
-that headroom if you swap in another reasoning model. Adding a sixth provider is one file (see *For developers*).
+that headroom if you swap in another reasoning model. Adding another provider is one file (see *For developers*).
 
-### Jev (TypeSafe) as an alternative judge
-
-Jev answers typed yes/no questions with probabilities instead of generating text, so it replaces the LLM judge for every
-LLM-judged metric (retriever, generator, triad, application quality and safety). Configure it in `.env`
-(see `.env.example`) and select it like any other judge:
-
-```bash
-# .env
-JEV_API_KEY=...                                   # required when Jev is selected
-JEV_API_URL=https://api.typesafe.ai/v1/systemone  # optional (this is the default)
-JEV_MODEL=jev-latest                              # optional (this is the default)
-
-uv run ragqa run --judge jev                      # or set JUDGE_PROVIDER=jev in .env
-uv run ragqa run --judges groq,jev                # compare the LLM judge and Jev side by side (multi-run report)
-```
-
-**The switch is `JUDGE_PROVIDER`** (`.env`) or `--judge` (CLI, wins over the env): `groq`/`anthropic`/`openai`/`google`/`bedrock` use an LLM,
-`jev` uses Jev. Without either, Groq stays the default. With Jev, each metric is split in code (statements of the
-answer, retrieved passages) and Jev judges each piece (`src/ragqa/metrics/jev.py`); the score is the mean probability
-(precision uses rank-weighted average precision, toxicity/PII are `1 - P`, so 1.0 is still best). Programmatic metrics
-(citation, latency, tokens, cost) are unaffected.
+**The switch is `JUDGE_PROVIDER`** (`.env`) or `--judge` (CLI, wins over the env), e.g. `uv run ragqa run --judge bedrock`.
+Without either, the `default:` in `config/judges.yaml` is used.
 
 ## 5. Golden dataset
 
@@ -204,7 +184,7 @@ Three equivalent entry points call the same code:
 uv run ragqa run                                  # single run
 uv run ragqa run --judge anthropic --only 'generator.*,triad.*'
 uv run ragqa multirun --runs 5                    # same traces re-scored 5x -> judge variance (API called once)
-uv run ragqa multirun --runs 3 --judges groq,openai --recollect   # also re-call the API every run
+uv run ragqa multirun --runs 3 --judges bedrock,openai --recollect   # also re-call the API every run
 
 # pytest (live suite: one test per metric, per layer + overall gate)
 uv run pytest tests/eval
@@ -219,7 +199,7 @@ The live pytest suite is configured through environment variables:
 | Variable | Meaning | Default |
 |---|---|---|
 | `RAGQA_RUNS` | `1` = single run, `>1` = multi run | `1` |
-| `RAGQA_JUDGES` | comma separated providers | `JUDGE_PROVIDER`, else `groq` |
+| `RAGQA_JUDGES` | comma separated providers | `JUDGE_PROVIDER`, else `bedrock` |
 | `RAGQA_DATASET` | dataset file | `datasets/golden.jsonl` |
 | `RAGQA_RECOLLECT` | `1` = call the RAG API again every run | off |
 | `RAGQA_LIMIT` | evaluate only the first N cases (e.g. `5` for a quick check) | all |
@@ -291,9 +271,9 @@ In `config/reporting.yaml` set `css:` (overlay loaded after the default; see `do
 config/            rag_api.yaml · judges.yaml · thresholds.yaml · reporting.yaml
 datasets/          golden.jsonl (generated) · source/golden-dataset.xlsx
 src/ragqa/
-  judges/          Groq (default) · Anthropic · OpenAI · Google · Bedrock · Jev   (registry, one file each)
+  judges/          Bedrock (default) · Groq · Anthropic · OpenAI · Google   (registry, one file each)
   stages/          retrieval · generation (· future reranker / LangGraph node)
-  metrics/         retriever · generator · triad · application · jev (Jev versions of the LLM-judged metrics)
+  metrics/         retriever · generator · triad · application
   evaluation/      runner (single/multi), aggregate + gate
   reporting/       html (+templates, static/report.css|js, charts.py) · json
   cli.py           ragqa run | multirun | validate-dataset
@@ -346,9 +326,9 @@ Verify with `uv run ragqa run --limit 1 --only 'retriever.*'` and open `reports/
 
 | To add | Create | Then |
 |---|---|---|
-| Judge provider | `src/ragqa/judges/<name>.py` with `@judges.register("<name>")` subclassing `BaseJudge` (see `bedrock.py` for a non-API-key provider, `jev.py` for a non-text-generating judge) | add a block in `config/judges.yaml` |
+| Judge provider | `src/ragqa/judges/<name>.py` with `@judges.register("<name>")` subclassing `BaseJudge` (see `bedrock.py` for a non-API-key provider) | add a block in `config/judges.yaml` |
 | Pipeline stage (reranker, LangGraph node…) | `src/ragqa/stages/<name>.py` with `@stages.register("<name>")` | add an endpoint block in `rag_api.yaml` and list it in `pipeline.stages` |
-| Metric | `src/ragqa/metrics/<layer>.py` with `@register_metric` (`DeepEvalSpec` or `MetricSpec`); for Jev also add an entry keyed by its `cache_name` in `metrics/jev.py` | add `<layer>.<name>` to `config/thresholds.yaml` |
+| Metric | `src/ragqa/metrics/<layer>.py` with `@register_metric` (`DeepEvalSpec` or `MetricSpec`) | add `<layer>.<name>` to `config/thresholds.yaml` |
 | Reporter (e.g. Allure) | `src/ragqa/reporting/<name>.py` with `@reporters.register("<name>")` | add the name to `reporters` in `config/reporting.yaml` |
 
 A new metric *layer* (say `reranker.*`) needs only the metric module; its pytest file is a 12-line copy of
@@ -377,7 +357,7 @@ retrieval stage's own output.
 ### What runs
 
 `.github/workflows/rag-evaluation.yml` is **manual only** (`workflow_dispatch`): GitHub *Actions → rag-evaluation → Run workflow*
-(inputs `runs`, `judge`, `only`, `limit`), or `gh workflow run rag-evaluation.yml -f runs=3 -f judge=jev -f only='retriever.*' -f limit=5`. It never runs on push or pull
+(inputs `runs`, `judge`, `only`, `limit`), or `gh workflow run rag-evaluation.yml -f runs=3 -f judge=bedrock -f only='retriever.*' -f limit=5`. It never runs on push or pull
 request, and the file must be on the default branch for the button to appear.
 
 1. **unit** (no secrets): `ragqa validate-dataset`, a check that `datasets/golden.jsonl` matches the spreadsheet (re-run the converter and commit
@@ -391,11 +371,10 @@ request, and the file must be on the default branch for the button to appear.
 | Kind | Name | Purpose |
 |---|---|---|
 | Variable | `RETRIEVAL_API_URL`, `GENERATION_API_URL` | RAG endpoints (must be reachable from the runner) |
-| Variable | `JUDGE_PROVIDER` (optional) | `groq` (default) · `anthropic` · `openai` · `google` · `bedrock` · `jev` (needs the `JEV_API_KEY` secret) |
+| Variable | `JUDGE_PROVIDER` (optional) | `bedrock` (default) · `groq` · `anthropic` · `openai` · `google` |
 | Variable | `RAGQA_RUNS` (optional) | `1` single run; `>1` multi run |
-| Secret / Variable | `JEV_API_KEY` (secret); `JEV_API_URL`, `JEV_MODEL` (optional variables) | only for the `jev` judge |
 | Run inputs | `only`, `limit` | run one layer (`retriever.*`, `generator.*`, `triad.*`, `application.*`) or the first N cases; empty = everything |
-| Secret | `GROQ_API_KEY` (default) / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY` | judge credentials (only the selected provider's is required) |
+| Secret | `GROQ_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY` | judge credentials (only the selected provider's is required) |
 | Secret / Variable | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (+ `AWS_SESSION_TOKEN`); variables `AWS_REGION`, `BEDROCK_MODEL` | only for the `bedrock` judge. Prefer GitHub OIDC: add `aws-actions/configure-aws-credentials` with a role allowed `bedrock:InvokeModel` before the eval step instead of long-lived keys |
 | Secret | `RETRIEVAL_API_TOKEN`, `GENERATION_API_TOKEN` | if the RAG API needs auth (also set `*_AUTH_TYPE=bearer`) |
 

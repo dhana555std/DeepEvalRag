@@ -133,7 +133,7 @@ class JudgeProviderCfg(BaseModel):
 
 
 class JudgesCfg(BaseModel):
-    default: str = "groq"
+    default: str = "bedrock"
     max_retries: int = 5
     providers: dict[str, JudgeProviderCfg] = Field(default_factory=dict)
 

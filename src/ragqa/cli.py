@@ -3,7 +3,7 @@
 Examples
 --------
     ragqa validate-dataset
-    ragqa run                                   # single run, default judge (Groq)
+    ragqa run                                   # single run, default judge (Bedrock)
     ragqa run --judge anthropic --only 'generator.*'
     ragqa multirun --runs 5                     # judge variance, API called once
     ragqa multirun --runs 3 --judges groq,openai,google --recollect

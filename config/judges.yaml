@@ -1,14 +1,10 @@
-# judges.yaml - LLM-as-judge providers. Groq is the default.
+# judges.yaml - LLM-as-judge providers. Amazon Bedrock is the default.
 #
 # Select at run time with, in priority order:  --judge / --judges (CLI)  >
 # JUDGE_PROVIDER (env)  >  `default` below.
 # Models can be changed here; API keys come from the env var named in api_key_env.
 # Bedrock has no API key: it uses the AWS credential chain (env keys, AWS_PROFILE/SSO, IAM role,
 # or AWS_BEARER_TOKEN_BEDROCK). Make sure the model is enabled in your account/region.
-# Jev (TypeSafe System One) is an alternative to the LLM judges: it answers yes/no questions with
-# probabilities instead of generating text. Select it with JUDGE_PROVIDER=jev or --judge jev;
-# its settings come from .env (JEV_API_KEY, JEV_API_URL, JEV_MODEL). Every LLM-judged metric has a
-# Jev implementation in src/ragqa/metrics/jev.py.
 # Add a provider: new module in src/ragqa/judges/ + a block here (see judges/base.py).
 
 default: bedrock
@@ -42,7 +38,3 @@ providers:
     max_tokens: 2048
     extra:
       region: ${AWS_REGION:-us-east-2}
-  jev:
-    model: ${JEV_MODEL:-jev-latest}
-    api_key_env: JEV_API_KEY
-    base_url: ${JEV_API_URL:-https://api.typesafe.ai/v1/systemone}
