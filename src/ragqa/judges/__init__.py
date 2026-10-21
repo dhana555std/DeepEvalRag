@@ -26,7 +26,8 @@ def create_judge(provider: str | None = None, cfg: JudgesCfg | None = None) -> B
     name = provider or os.environ.get("JUDGE_PROVIDER") or cfg.default
     if name not in cfg.providers:
         raise JudgeConfigError(f"judge '{name}' has no entry in judges.yaml")
-    return judges.get(name)(cfg.providers[name], max_retries=cfg.max_retries)
+    return judges.get(name)(cfg.providers[name], max_retries=cfg.max_retries,
+                                  max_concurrent_calls=cfg.max_concurrent_calls, json_retries=cfg.json_retries)
 
 
 __all__ = ["BaseJudge", "JudgeConfigError", "create_judge", "judges"]

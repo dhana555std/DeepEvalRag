@@ -82,7 +82,7 @@ def test_html_is_readable_and_aligned(tmp_path):
     assert "Errors in:" not in html and "Below threshold:" not in html  # old run-on sentence is gone
     assert html.count("HTTP 404 Not Found") == 1  # one cause card, not one line per metric
     assert '<th class="num">Value</th>' in html and '<th class="center">Status</th>' in html
-    assert "<colgroup>" in html and 'class="badge fail">ERROR' in html
+    assert "<colgroup>" in html and 'class="badge err">NOT SCORED' in html
     assert "Not scored: the generation stage failed" in html  # per-case reason is short, not the full URL error
     css = (tmp_path / "report.css").read_text()
     assert "table-layout: fixed" in css and "th.num, td.num" in css

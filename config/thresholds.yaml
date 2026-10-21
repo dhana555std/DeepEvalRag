@@ -11,6 +11,7 @@
 # metric errored - a broken judge or API must not look like a pass.
 
 fail_on_error: true
+max_error_rate: 0.10     # tolerated share of errored cases per metric (e.g. throttled judge calls)
 
 metrics:
   # ---- Retriever
