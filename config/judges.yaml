@@ -8,7 +8,9 @@
 # Add a provider: new module in src/ragqa/judges/ + a block here (see judges/base.py).
 
 default: bedrock
-max_retries: 5            # per judge call, exponential backoff (handles rate limits)
+max_concurrent_calls: 2  # global cap on in-flight judge calls across all metrics (lower if throttled)
+json_retries: 1          # extra attempts when the judge returns unparseable JSON
+max_retries: 3           # per judge call, exponential backoff (handles rate limits)
 
 providers:
   groq:

@@ -1,11 +1,22 @@
 {#- _case.html.j2 - markup of one case (used by report.html.j2). Macro: render_case(c) -#}
 {% from "_charts.html.j2" import bullet_row %}
 {% macro render_case(c) %}
-<details class="case {{ 'pass' if c.passed else 'fail' }}" id="case-{{ c.case_id }}" data-case>
+{% set state = c|case_state %}
+{% set worst = c|worst_metric %}
+{% set live, skipped = c|split_metrics %}
+{% set n_fail = live|selectattr("passed", "eq", false)|rejectattr("error")|list|length %}
+{% set n_err = live|selectattr("error")|list|length %}
+<details class="case {{ state }}" id="case-{{ c.case_id }}" data-state="{{ state }}" data-category="{{ c.category }}" data-text="{{ (c.case_id ~ ' ' ~ c.question)|lower }}" data-case>
   <summary>
-    <span class="badge {{ 'pass' if c.passed else 'fail' }}">{{ "PASS" if c.passed else "FAIL" }}</span>
-    <strong>{{ c.case_id }}</strong> · {{ c.question }}
-    <span class="muted">[{{ c.category }}]</span>
+    <strong class="case-id">{{ c.case_id }}</strong>
+    <span class="case-extra">
+      {% if n_fail %}<span class="chip-fail">{{ n_fail }} below threshold</span>{% endif %}
+      {% if n_err %}<span class="chip-err">{{ n_err }} not scored</span>{% endif %}
+      {% if not n_fail and not n_err %}<span class="muted">{{ c.category or "–" }}</span>{% endif %}
+    </span>
+    <span class="case-q">{{ c.question }}</span>
+    <span class="case-worst">{% if worst %}<span class="chip-fail">{{ worst.key.split(".")[-1] }} {{ worst.score|fmt(worst.unit) }}</span>{% elif n_err %}<span class="chip-err">no score</span>{% else %}<span class="muted">all within threshold</span>{% endif %}</span>
+    <span class="badge {{ state }}">{{ state_label[state] }}</span>
   </summary>
   <div class="case-body">
     <div class="qa">
@@ -34,17 +45,18 @@
       <colgroup><col class="c-key"><col class="c-num"><col class="c-num"><col class="c-status"><col class="c-reason"></colgroup>
       <thead><tr><th>Metric</th><th class="num">Score</th><th class="num">Threshold</th><th class="center">Status</th><th>Reason</th></tr></thead>
       <tbody>
-      {% for m in c.metrics %}
-        <tr class="{{ 'skipped' if m.skipped }}">
+      {% for m in live %}
+        <tr>
           <td>{{ m.key }}</td>
-          <td class="num">{{ "–" if m.skipped or m.score is none else m.score|fmt(m.unit) }}</td>
+          <td class="num">{{ "–" if m.score is none else m.score|fmt(m.unit) }}</td>
           <td class="num">{{ ("≥ " if m.direction == "min" else "≤ ") ~ (m.threshold|fmt(m.unit)) if m.threshold is not none else "–" }}</td>
-          <td class="center">{% if m.skipped %}<span class="badge info">SKIP</span>{% elif m.error %}<span class="badge fail">ERROR</span>{% else %}<span class="badge {{ m.passed|status_class }}">{{ m.passed|status_label }}</span>{% endif %}</td>
-          <td class="reason">{{ m.error|short_error if m.error else (m.reason or "") }}</td>
+          <td class="center">{% if m.error %}<span class="badge err">NOT SCORED</span>{% else %}<span class="badge {{ m.passed|status_class }}">{{ m.passed|status_label }}</span>{% endif %}</td>
+          <td class="reason">{% if m.error %}{{ m.error|short_error }}{% elif m.passed is false %}{{ m.reason or "" }}{% elif m.reason %}<details class="why"><summary>why</summary>{{ m.reason }}</details>{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
+    {% if skipped %}<p class="muted not-applicable">Not applicable to this case ({{ skipped|length }}): {{ skipped|map(attribute="key")|join(", ") }}</p>{% endif %}
   </div>
 </details>
 {% endmacro %}

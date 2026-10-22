@@ -24,7 +24,7 @@ like the CSS) shows ``page_size`` cases at a time (default 20) and builds the pa
 page. Without JavaScript (or when printing) all cases are visible. ``cases_order`` is
 ``failed_first`` (default; problems on page 1) or ``dataset``. ``page_size: 0`` disables paging.
 
-``theme`` (``dark`` default, ``light`` or ``system``) is the theme the report opens in until the
+``theme`` (``dark`` default or ``light``) is the theme the report opens in until the
 viewer picks another with the switcher (remembered in the browser).
 """
 
@@ -65,6 +65,36 @@ def status_label(passed: bool | None) -> str:
     return {True: "PASS", False: "FAIL", None: "INFO"}[passed]
 
 
+STATE_LABEL = {"fail": "FAIL", "err": "NOT SCORED", "pass": "PASS"}
+_STATE_RANK = {"fail": 0, "err": 1, "pass": 2}
+
+
+def case_state(case) -> str:
+    """``fail`` (a metric missed its threshold), ``err`` (only scoring errors) or ``pass``.
+
+    Errors are kept apart from failures: an errored metric says nothing about quality.
+    """
+    live = [m for m in case.metrics if not m.skipped]
+    if any(m.passed is False and not m.error for m in live):
+        return "fail"
+    if any(m.error for m in live):
+        return "err"
+    return "pass" if case.passed else "fail"
+
+
+def split_metrics(case) -> tuple[list, list]:
+    """(metrics that were evaluated, failures first then errors; metrics skipped as not applicable)."""
+    live = [m for m in case.metrics if not m.skipped]
+    live.sort(key=lambda m: 1 if m.error else (0 if m.passed is False else 2))
+    return live, [m for m in case.metrics if m.skipped]
+
+
+def worst_metric(case):
+    """The lowest-scoring failed metric of a case (for the one-line summary), or None."""
+    failed = [m for m in case.metrics if not m.skipped and not m.error and m.passed is False and m.score is not None]
+    return min(failed, key=lambda m: m.score) if failed else None
+
+
 def _group_by_layer(items: list) -> list[tuple[str, str, list]]:
     layers: dict[str, list] = {}
     for it in items:
@@ -83,7 +113,9 @@ class HtmlReporter(Reporter):
         loaders.append(FileSystemLoader(_PKG / "templates"))
         env = Environment(loader=ChoiceLoader(loaders), autoescape=select_autoescape(["html", "j2"]))
         env.filters.update(fmt=fmt, status_class=status_class, status_label=status_label,
-                           short_error=short_error)
+                           short_error=short_error, case_state=case_state, split_metrics=split_metrics,
+                           worst_metric=worst_metric)
+        env.globals["state_label"] = STATE_LABEL
         env.globals["group_by_layer"] = _group_by_layer
         env.globals.update(CHART_GLOBALS)
         return env
@@ -112,15 +144,16 @@ class HtmlReporter(Reporter):
 
         cases = list(report.runs[0].cases)  # multi mode: first run of the first judge
         if cfg.cases_order == "failed_first":
-            cases.sort(key=lambda c: c.passed)  # stable: failing cases first, dataset order within groups
+            cases.sort(key=lambda c: _STATE_RANK[case_state(c)])  # stable: failures, then errors, then passes
 
         for stale in out_dir.glob("cases-*.html"):  # leftovers of the earlier multi-file pagination
             stale.unlink()
 
         html = self._env(cfg).get_template("report.html.j2").render(
             report=report, summary=summarize(report), brand_css=brand_css, logo=logo, favicon=favicon,
-            cases=cases, page_size=max(cfg.page_size, 0), pager_pages=max(cfg.pager_pages, 1),
-            cases_order=cfg.cases_order, theme=cfg.theme if cfg.theme in ("dark", "light", "system") else "dark",
+            cases=cases, case_counts={s: sum(1 for c in cases if case_state(c) == s) for s in STATE_LABEL},
+            categories=sorted({c.category for c in cases if c.category}), page_size=max(cfg.page_size, 0), pager_pages=max(cfg.pager_pages, 1),
+            cases_order=cfg.cases_order, theme=cfg.theme if cfg.theme in ("dark", "light") else "dark",
         )
         path = out_dir / "report.html"
         path.write_text(html, encoding="utf-8")

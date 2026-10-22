@@ -18,5 +18,5 @@ css: null                     # e.g. documentation/branding/brand.css
 template_dir: null
 page_size: 20                 # cases shown per page in the HTML report (Next button, same page); 0 = show all
 cases_order: failed_first     # failed_first (problems on page 1) | dataset
-theme: dark                   # default theme when the viewer has not chosen one: dark | light | system
+theme: light                  # default theme when the viewer has not chosen one: dark | light
 pager_pages: 20               # page numbers shown at once; beyond that use « » / Next to move to the next sheet

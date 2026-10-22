@@ -82,9 +82,21 @@ def aggregate_run(cases: list[CaseResult], cfg: ThresholdsCfg) -> list[Aggregate
     return sorted(out, key=lambda a: (layer_sort_key(a.layer), a.key))
 
 
+def error_rate_exceeded(errors: int, total: int, max_error_rate: float) -> bool:
+    """True when the share of errored cases (``errors`` of ``total``) is above the tolerated rate.
+
+    The single definition of the error tolerance, used by ``evaluate_gate`` and the pytest gate.
+    """
+    return bool(errors) and total > 0 and errors / total > max_error_rate
+
+
 def evaluate_gate(aggregates: list[Aggregate], cfg: ThresholdsCfg) -> GateResult:
     failed = [a.key for a in aggregates if a.passed is False]
-    errored = [a.key for a in aggregates if a.errors] if cfg.fail_on_error else []
+    errored = (
+        [a.key for a in aggregates if error_rate_exceeded(a.errors, a.n + a.errors, cfg.max_error_rate)]
+        if cfg.fail_on_error
+        else []
+    )
     return GateResult(passed=not failed and not errored, failed_metrics=failed, errored_metrics=errored)
 
 

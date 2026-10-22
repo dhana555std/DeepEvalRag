@@ -65,6 +65,7 @@ class Breach:
     value: str
     threshold: str
     gap: str
+    rel: float = 0.0  # gap relative to the threshold: ranks the worst miss first
 
 
 @dataclass
@@ -79,6 +80,13 @@ class Summary:
     cases_failed: int = 0
     causes: list[Cause] = field(default_factory=list)
     breaches: list[Breach] = field(default_factory=list)
+
+    @property
+    def status(self) -> str:
+        """``fail`` (a threshold was missed), ``incomplete`` (only scoring problems) or ``pass``."""
+        if self.metrics_failed or (not self.passed and not self.metrics_errored):
+            return "fail"
+        return "incomplete" if self.metrics_errored or not self.passed else "pass"
 
     @property
     def has_issues(self) -> bool:
@@ -164,7 +172,8 @@ def _breach(a: Aggregate | MultiAggregate, judge: str | None) -> Breach:
     op = "≥" if a.direction == "min" else "≤"
     gap = abs(value - a.threshold) if value is not None and a.threshold is not None else None
     return Breach(a.key, a.layer, judge, fmt_value(value, a.unit), f"{op} {fmt_value(a.threshold, a.unit)}",
-                  fmt_value(gap, a.unit) if gap is not None else "–")
+                  fmt_value(gap, a.unit) if gap is not None else "–",
+                  gap / abs(a.threshold) if gap is not None and a.threshold else 0.0)
 
 
 def summarize(report: RunReport) -> Summary:
@@ -202,5 +211,5 @@ def summarize(report: RunReport) -> Summary:
         s.metrics_total = len(report.multi)
         s.breaches = [_breach(m, m.judge) for m in report.multi if m.passed is False and m.key not in errored_keys]
 
-    s.breaches.sort(key=lambda b: (layer_sort_key(b.layer), b.key))
+    s.breaches.sort(key=lambda b: (-b.rel, layer_sort_key(b.layer), b.key))  # worst miss first
     return s
