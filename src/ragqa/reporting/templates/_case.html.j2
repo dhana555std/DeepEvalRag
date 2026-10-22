@@ -15,7 +15,7 @@
       {% if not n_fail and not n_err %}<span class="muted">{{ c.category or "–" }}</span>{% endif %}
     </span>
     <span class="case-q">{{ c.question }}</span>
-    <span class="case-worst">{% if worst %}<span class="chip-fail">{{ worst.key.split(".")[-1] }} {{ worst.score|fmt(worst.unit) }}</span>{% elif n_err %}<span class="chip-err">judge error</span>{% else %}<span class="muted">all within threshold</span>{% endif %}</span>
+    <span class="case-worst">{% if worst %}<span class="chip-fail">{{ worst.key.split(".")[-1] }} {{ worst.score|fmt(worst.unit) }}</span>{% elif n_err %}<span class="chip-err">no score</span>{% else %}<span class="muted">all within threshold</span>{% endif %}</span>
     <span class="badge {{ state }}">{{ state_label[state] }}</span>
   </summary>
   <div class="case-body">

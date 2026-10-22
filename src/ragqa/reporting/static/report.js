@@ -1,5 +1,5 @@
 /*
- * report.js - theme switcher (System / Light / Dark) and client-side pagination of the case details.
+ * report.js - theme switcher (Light / Dark) and client-side pagination of the case details.
  *
  * The report page contains EVERY case (<details data-case> inside #case-list). This script shows
  * `data-page-size` cases at a time (default 20) and builds the pager (<nav data-pager>) at the top
@@ -48,7 +48,7 @@
     return items;
   }
 
-  /** Theme switcher: Dark (default) / Light / System, remembered in localStorage. */
+  /** Theme switcher: Dark (default) / Light, remembered in localStorage. */
   function initTheme() {
     var root = document.documentElement;
     var buttons = Array.prototype.slice.call(document.querySelectorAll('[data-theme-set]'));
@@ -63,11 +63,42 @@
     }
     var saved = null;
     try { saved = localStorage.getItem('ragqa-theme'); } catch (e) { /* ignore */ }
-    apply(saved === 'light' || saved === 'dark' || saved === 'system' ? saved : (root.getAttribute('data-default-theme') || 'dark'), false);
+    apply(saved === 'light' || saved === 'dark' ? saved : (root.getAttribute('data-default-theme') || 'dark'), false);
     buttons.forEach(function (b) { b.addEventListener('click', function () { apply(b.getAttribute('data-theme-set'), true); }); });
   }
 
+  /** Tabs: Overview (default) / Results by layer / Case details. Case links and pager hashes open Case details. */
+  function initTabs() {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-tab]'));
+    if (!tabs.length) return;
+    function select(name, focus) {
+      tabs.forEach(function (t) {
+        var on = t.getAttribute('data-tab') === name;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        if (on && focus) t.focus();
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('[data-panel]'), function (p) {
+        p.hidden = p.getAttribute('data-panel') !== name;
+      });
+    }
+    function fromHash() {
+      var h = location.hash || '';
+      if (h.indexOf('#case-') === 0 || h.indexOf('#page=') === 0) select('cases', false);
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { select(t.getAttribute('data-tab'), false); });
+      t.addEventListener('keydown', function (e) {
+        var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (d) { e.preventDefault(); select(tabs[(i + d + tabs.length) % tabs.length].getAttribute('data-tab'), true); }
+      });
+    });
+    window.addEventListener('hashchange', fromHash);
+    fromHash();
+  }
+
   function init() {
+    initTabs();
     initTheme();
     var list = document.getElementById('case-list');
     if (!list) return;

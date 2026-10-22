@@ -24,7 +24,7 @@ like the CSS) shows ``page_size`` cases at a time (default 20) and builds the pa
 page. Without JavaScript (or when printing) all cases are visible. ``cases_order`` is
 ``failed_first`` (default; problems on page 1) or ``dataset``. ``page_size: 0`` disables paging.
 
-``theme`` (``dark`` default, ``light`` or ``system``) is the theme the report opens in until the
+``theme`` (``dark`` default or ``light``) is the theme the report opens in until the
 viewer picks another with the switcher (remembered in the browser).
 """
 
@@ -153,7 +153,7 @@ class HtmlReporter(Reporter):
             report=report, summary=summarize(report), brand_css=brand_css, logo=logo, favicon=favicon,
             cases=cases, case_counts={s: sum(1 for c in cases if case_state(c) == s) for s in STATE_LABEL},
             categories=sorted({c.category for c in cases if c.category}), page_size=max(cfg.page_size, 0), pager_pages=max(cfg.pager_pages, 1),
-            cases_order=cfg.cases_order, theme=cfg.theme if cfg.theme in ("dark", "light", "system") else "dark",
+            cases_order=cfg.cases_order, theme=cfg.theme if cfg.theme in ("dark", "light") else "dark",
         )
         path = out_dir / "report.html"
         path.write_text(html, encoding="utf-8")

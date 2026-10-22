@@ -209,8 +209,6 @@ def layer_story(aggs: list, cases: list[CaseResult]) -> dict:
     else:
         status, label = "pass", "Healthy"
     sentence = f"{ok} of {len(gated)} checks passed." if gated else "No pass/fail targets are set for this layer."
-    if bad:
-        sentence += " Biggest problem: " + bad[0]["title"].lower() + "."
     return {"status": status, "label": label, "sentence": sentence, "cards": cards}
 
 

@@ -134,7 +134,7 @@ class JudgeProviderCfg(BaseModel):
 
 class JudgesCfg(BaseModel):
     default: str = "bedrock"
-    max_retries: int = 5
+    max_retries: int = 3
     max_concurrent_calls: int = 2  # global cap on in-flight judge calls (all metrics share it)
     json_retries: int = 2  # extra attempts when the judge returns unparseable JSON
     providers: dict[str, JudgeProviderCfg] = Field(default_factory=dict)
@@ -179,7 +179,7 @@ class ReportingCfg(BaseModel):
     template_dir: str | None = None  # directory with a custom report.html.j2
     page_size: int = 20  # cases shown per page in the HTML report (client-side); 0 = no pagination
     cases_order: str = "failed_first"  # failed_first | dataset
-    theme: str = "light"  # default colour theme of the HTML report: dark | light | system
+    theme: str = "light"  # default colour theme of the HTML report: dark | light
     pager_pages: int = 20  # max page numbers shown at once ("sheet"); « » jump between sheets
 
 
