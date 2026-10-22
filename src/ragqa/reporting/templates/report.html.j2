@@ -30,8 +30,8 @@
   <title>{{ report.title }}</title>
   <meta name="color-scheme" content="light dark">
   <script>/* apply the saved theme before first paint (no flash); report.js owns the switcher */
-    (function () { var d = document.documentElement; d.classList.remove('no-js');
-      try { var t = localStorage.getItem('ragqa-theme'); if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t); } catch (e) {} })();
+    (function () { const d = document.documentElement; d.classList.remove('no-js');
+      try { const t = localStorage.getItem('ragqa-theme'); if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t); } catch (e) {} })();
   </script>
   <link rel="icon" href="{{ favicon }}">
   <link rel="stylesheet" href="report.css">
